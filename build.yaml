@@ -1,0 +1,42 @@
+targets:
+  $default:
+    builders:
+      dart_macros|macro_builder:
+        enabled: true
+        generate_for:
+          - lib/**/*.dart
+        options:
+          useEnvironmentVariables: true
+          processTestFiles: false
+          include:
+            - lib/**/*.dart
+          exclude:
+            - lib/**/*.g.dart
+            - lib/**/*.macro.dart
+          defines:
+            _DEBUG: "1"
+            _RELEASE: "0"
+          buildConfig:
+            APP_NAME: "MyApp"
+            APP_VERSION: "1.0.0"
+          featureFlags:
+            FEATURE_NEW_UI: true
+            FEATURE_ANALYTICS: false
+          version: "1.0.0"
+
+builders:
+  macro_builder:
+    import: "package:dart_macros/builder.dart"
+    builder_factories: ["macroBuilder"]
+    build_extensions: {".dart": [".macro.dart"]}
+    auto_apply: dependents
+    build_to: source
+    applies_builders: ["source_gen|combining_builder"]
+
+  macro_generator:
+    import: "package:dart_macros/builder.dart"
+    builder_factories: ["macroGeneratorBuilder"]
+    build_extensions: {".dart": [".macro.g.part"]}
+    auto_apply: dependents
+    build_to: source
+    applies_builders: ["source_gen|combining_builder"]
