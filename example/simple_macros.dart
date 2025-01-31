@@ -6,8 +6,7 @@ import 'package:dart_macros/dart_macros.dart';
 @Define('PI', 3.14159)
 @Define('DEBUG', true)
 void main() async {
-  // Initialize macros first
-  await initializeDartMacros();
+  await initializeDartMacros(); // This is now optional but won't hurt
 
   print('App Version: ${Macros.get<String>("VERSION")}');
 

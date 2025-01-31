@@ -1,80 +1,107 @@
-// import 'package:dart_macros/builder.dart';
-//
-// // Token concatenation example
-// #define CONCAT(a, b) a ## b
-// #define MAKE_GETTER(type, name) type get##name() => _##name
-//
-// // Advanced stringizing
-// #define LOG_CALL(func) print("Calling " #func " at " __FILE__ ":" __LINE__)
-// #define DEBUG_PRINT(...) print("Debug [" __FILE__ ":" __LINE__ "]: " __VA_ARGS__)
-//
-// // Custom predefined macros from build.yaml will be available
-// #define APP_VERSION _VERSION_STRING
-// #define IS_DEBUG _DEBUG
-// #define HAS_NEW_UI _FEATURE_NEW_UI
-//
-// @Macro(
-// defines: {
-// 'LOGGING': 'true',
-// 'MAX_RETRY': '3',
-// },
-// )
-// class AdvancedExample {
-// final String _name;
-// final int _age;
-//
-// AdvancedExample(this._name, this._age);
-//
-// // Using MAKE_GETTER to generate getters
-// MAKE_GETTER(String, name)
-// MAKE_GETTER(int, age)
-//
-// // Using CONCAT for method names
-// void CONCAT(print, Details)() {
-// LOG_CALL(printDetails);
-// print('Name: $_name, Age: $_age');
-// }
-//
-// void processWithRetry() {
-// #ifdef LOGGING
-// DEBUG_PRINT("Starting process with retry");
-// #endif
-//
-// for (var i = 0; i < MAX_RETRY; i++) {
-// try {
-// _process();
-// break;
-// } catch (e) {
-// #ifdef LOGGING
-// DEBUG_PRINT("Retry $i failed: $e");
-// #endif
-// }
-// }
-// }
-//
-// void _process() {
-// #if IS_DEBUG
-// print('Processing in debug mode');
-// #endif
-//
-// #if HAS_NEW_UI
-// _processWithNewUI();
-// #else
-// _processWithLegacyUI();
-// #endif
-// }
-//
-// void _processWithNewUI() {
-// print('Using new UI - Version: $APP_VERSION');
-// }
-//
-// void _processWithLegacyUI() {
-// print('Using legacy UI - Version: $APP_VERSION');
-// }
-// }
-//
-// void main() {
-// final example = AdvancedExample('John', 30);
-// example.printDetails();
-// example.processWithRetry();
-// }
+import 'package:dart_macros/dart_macros.dart';
+
+@MacroFile()
+// Basic definitions
+@Define('LOGGING', true)
+@Define('MAX_RETRY', 3)
+@Define('VERSION_STRING', '1.0.0')
+@Define('__DEBUG__', true)
+@Define('FEATURE_NEW_UI', true)
+
+// Function-like macro definitions
+@DefineMacro(
+  'CONCAT',
+  'a + b',  // Simplified concatenation
+  parameters: const ['a', 'b'],
+)
+@DefineMacro(
+  'MAKE_GETTER',
+  'type get name() => _name',  // Fixed getter syntax
+  parameters: const ['type', 'name'],
+)
+@DefineMacro(
+  'LOG_CALL',
+  '"Calling " + func + " at " + __FILE__ + ":" + __LINE__',  // Removed extra parentheses
+  parameters: const ['func'],
+)
+@DefineMacro(
+  'DEBUG_PRINT',
+  '"Debug [" + __FILE__ + ":" + __LINE__ + "]: " + text',  // Removed extra parentheses
+  parameters: const ['text'],
+)
+class AdvancedExample {
+  final String _name;
+  final int _age;
+
+  AdvancedExample(this._name, this._age);
+
+  String get name => _name;
+  int get age => _age;
+
+  void printDetails() {
+    if (MacroFunctions.IS_DEBUG()) {
+      MacroFunctions.LOG_CALL('printDetails');
+    }
+    print('Name: $_name, Age: $_age');
+  }
+
+  Future<void> processWithRetry() async {
+    if (Macros.get<bool>('LOGGING')) {
+      MacroFunctions.DEBUG_PRINT('Starting process with retry');
+    }
+
+    final maxRetry = Macros.get<int>('MAX_RETRY');
+    for (var i = 0; i < maxRetry; i++) {
+      try {
+        await process();
+        break;
+      } catch (e) {
+        if (Macros.get<bool>('LOGGING')) {
+          MacroFunctions.DEBUG_PRINT('Retry $i failed: $e');
+        }
+      }
+    }
+  }
+
+  Future<void> process() async {
+    if (MacroFunctions.IS_DEBUG()) {
+      print('Processing in debug mode');
+    }
+
+    if (Macros.get<bool>('FEATURE_NEW_UI')) {
+      await processWithNewUI();
+    } else {
+      await processWithLegacyUI();
+    }
+  }
+
+  Future<void> processWithNewUI() async {
+    print('Using new UI - Version: ${Macros.get<String>("VERSION_STRING")}');
+    await Future.delayed(Duration(milliseconds: 100));
+  }
+
+  Future<void> processWithLegacyUI() async {
+    print('Using legacy UI - Version: ${Macros.get<String>("VERSION_STRING")}');
+    await Future.delayed(Duration(milliseconds: 100));
+  }
+}
+
+void main() async {
+  await initializeDartMacros();
+
+  final example = AdvancedExample('John', 30);
+
+  print('\n=== Running Advanced Macro Examples ===');
+
+  // Test string concatenation
+  final concatenated = MacroFunctions.CONCAT('Hello', 'World');
+  print('Concatenated string: $concatenated');
+
+  // Test method with debug logging
+  example.printDetails();
+
+  // Test retry mechanism
+  await example.processWithRetry();
+
+  print('=== Examples Complete ===\n');
+}

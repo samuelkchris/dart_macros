@@ -1,33 +1,58 @@
-// // Function-like macro examples
-// #define SQUARE(x) ((x) * (x))
-// #define MAX(a, b) ((a) > (b) ? (a) : (b))
-// #define MIN(a, b) ((a) < (b) ? (a) : (b))
-// #define CLAMP(x, low, high) (MIN(MAX((x), (low)), (high)))
-// #define STRINGIFY(x) #x
-// #define PRINT_VAR(var) print("Variable " #var " = " + (var).toString())
-//
-// void main() {
-// // Using square macro
-// final squared = SQUARE(5);  // Expands to ((5) * (5))
-// print('5 squared is $squared');
-//
-// // Using max/min macros
-// final a = 10, b = 20;
-// final maximum = MAX(a, b);  // Expands to ((a) > (b) ? (a) : (b))
-// final minimum = MIN(a, b);  // Expands to ((a) < (b) ? (a) : (b))
-// print('Max of $a and $b is $maximum');
-// print('Min of $a and $b is $minimum');
-//
-// // Using clamp macro
-// final value = 15;
-// final clamped = CLAMP(value, 0, 10);  // Keeps value between 0 and 10
-// print('Clamped value is $clamped');
-//
-// // Using stringizing operator
-// final name = STRINGIFY(user);  // Converts to "user"
-// print('Stringized: $name');
-//
-// // Using print variable macro
-// final count = 42;
-// PRINT_VAR(count);  // Prints: Variable count = 42
-// }
+import 'package:dart_macros/dart_macros.dart';
+
+@MacroFile()
+@Define('VERSION', '1.0.0')
+@Define('__DEBUG__', true)
+@DefineMacro(
+  'SQUARE',
+  'x * x',
+  parameters: ['x'],
+)
+@DefineMacro(
+  'MAX',
+  'a > b ? a : b',
+  parameters: ['a', 'b'],
+)
+@DefineMacro(
+  'MIN',
+  'a < b ? a : b',
+  parameters: ['a', 'b'],
+)
+@DefineMacro(
+  'CLAMP',
+  'x < low ? low : (x > high ? high : x)',
+  parameters: ['x', 'low', 'high'],
+)
+@DefineMacro(
+  'STRINGIFY',
+  '"x"',
+  parameters: ['x'],
+)
+void main() async {
+  await initializeDartMacros();
+
+  print('Version: ${Macros.get<String>('VERSION')}');
+
+  // Test math operations
+  final squared = MacroFunctions.SQUARE(5);
+  print('5 squared is $squared'); // Should print 25
+
+  // Test comparison operations
+  final a = 10, b = 20, c = 30;
+  final maximum = MacroFunctions.MAX(a, b);
+  final minimum = MacroFunctions.MIN(b, c);
+  print('Max of $a and $b is $maximum'); // Should print 20
+  print('Min of $b and $c is $minimum'); // Should print 20
+
+  // Test clamping
+  final value = 15;
+  final clamped = MacroFunctions.CLAMP(value, 0, 10);
+  print('Clamping $value between 0 and 10: $clamped'); // Should print 10
+
+  // Test string operations
+  final name = MacroFunctions.STRINGIFY("user");
+  print('Stringized: $name'); // Should print: user
+
+  // Test debug print
+  MacroFunctions.DEBUG_PRINT('This is a debug message');
+}
