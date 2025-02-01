@@ -1,0 +1,14 @@
+{
+  "FEATURE_DARK_MODE": true,
+  "FEATURE_ANALYTICS": true,
+  "FEATURE_CLOUD_SYNC": false,
+  "UI": {
+    "THEME": "dark",
+    "ANIMATIONS": true,
+    "COLORS": {
+      "PRIMARY": "#007AFF",
+      "SECONDARY": "#5856D6",
+      "BACKGROUND": "#000000"
+    }
+  }
+}

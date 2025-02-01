@@ -1,6 +1,12 @@
-import 'macros.dart';
-import 'core/exceptions.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:path/path.dart' as path;
+import 'package:yaml/yaml.dart';
+import '../../../dart_macros.dart';
+import 'core/condition_parser.dart';
+import 'core/location.dart';
 import 'core/evaluator.dart';
+import 'features/environment/environment_data.dart';
 
 /// Built-in macro functions extension
 extension MacroFunctions on Macros {
@@ -77,9 +83,243 @@ extension MacroFunctions on Macros {
   static bool HAS_FEATURE(String feature) =>
       Macros.get<bool>('FEATURE_${feature.toUpperCase()}') ?? false;
 
-  static String _getLocationInfo() {
-    final file = Macros.file;
-    final line = Macros.line;
-    return '[$file:$line]';
+  static bool IF(String condition) {
+    final defines = getAllValues();
+    final parser = ConditionParser(defines);
+    return parser.evaluate(condition);
+  }
+
+  static bool IFDEF(String symbol) {
+    return IF('#ifdef $symbol');
+  }
+
+  static bool IFNDEF(String symbol) {
+    return IF('#ifndef $symbol');
+  }
+
+  static bool IF_PLATFORM(String platform) {
+    return IF('PLATFORM == "$platform"');
+  }
+
+  static bool IF_VERSION_GTE(int version) {
+    return IF('API_VERSION >= $version');
+  }
+
+  // Helpers
+  static Map<String, dynamic> getAllValues() {
+    return Macros.getAllValues();
+  }
+
+  /// Resource operations
+  static Future<String> LOAD_RESOURCE(String resourcePath) async {
+    final location = Location(
+      file: Macros.file,
+      line: Macros.line,
+      column: 1,
+    );
+    return ResourceLoader.loadResource(resourcePath, location);
+  }
+
+  static Future<void> LOAD_PROPERTIES(String propertiesPath) async {
+    final location = Location(
+      file: Macros.file,
+      line: Macros.line,
+      column: 1,
+    );
+    final content = await ResourceLoader.loadResource(propertiesPath, location);
+
+    final lines = content.split('\n');
+    for (var line in lines) {
+      line = line.trim();
+      if (line.isEmpty || line.startsWith('#')) continue;
+
+      final parts = line.split('=');
+      if (parts.length == 2) {
+        final name = parts[0].trim();
+        final value = parts[1].trim();
+
+        // Try to convert value to appropriate type
+        if (value.toLowerCase() == 'true' || value.toLowerCase() == 'false') {
+          Macros.define(name, value.toLowerCase() == 'true');
+        } else if (value.startsWith('"') && value.endsWith('"')) {
+          Macros.define(name, value.substring(1, value.length - 1));
+        } else if (int.tryParse(value) != null) {
+          Macros.define(name, int.parse(value));
+        } else if (double.tryParse(value) != null) {
+          Macros.define(name, double.parse(value));
+        } else {
+          Macros.define(name, value);
+        }
+      }
+    }
+  }
+
+  /// Load and define macros from a JSON file
+  static Future<void> LOAD_JSON(String jsonPath) async {
+    final location = Location(
+      file: Macros.file,
+      line: Macros.line,
+      column: 1,
+    );
+    final content = await ResourceLoader.loadResource(jsonPath, location);
+
+    final Map<String, dynamic> json = jsonDecode(content);
+    _defineFromJson('', json);
+  }
+
+  /// Recursively define macros from a JSON/YAML map
+  static void _defineFromJson(String prefix, dynamic value) {
+    if (value is Map) {
+      if (prefix.isNotEmpty) {
+        // Store the entire map under its prefix
+        Macros.define(prefix, value);
+      }
+      // Also store individual values
+      value.forEach((key, val) {
+        final macroName = prefix.isEmpty ? key : '${prefix}_$key';
+        _defineFromJson(macroName, val);
+      });
+    } else if (value is List) {
+      Macros.define(prefix, value);
+    } else if (value is bool) {
+      Macros.define(prefix, value);
+    } else if (value is num) {
+      Macros.define(prefix, value);
+    } else {
+      Macros.define(prefix, value.toString());
+    }
+  }
+
+  /// Convert YamlMap to regular Map recursively
+  static dynamic _convertYamlToMap(dynamic yaml) {
+    if (yaml is YamlMap) {
+      return Map<String, dynamic>.fromEntries(
+        yaml.entries.map(
+          (e) => MapEntry(e.key.toString(), _convertYamlToMap(e.value)),
+        ),
+      );
+    }
+    if (yaml is YamlList) {
+      return yaml.map(_convertYamlToMap).toList();
+    }
+    return yaml;
+  }
+
+  /// Load and define macros from a YAML file
+  static Future<void> LOAD_YAML(String yamlPath) async {
+    final location = Location(
+      file: Macros.file,
+      line: Macros.line,
+      column: 1,
+    );
+    final content = await ResourceLoader.loadResource(yamlPath, location);
+
+    final yamlDoc = loadYaml(content);
+    final map = _convertYamlToMap(yamlDoc) as Map<String, dynamic>;
+    _defineFromJson('', map); // Reuse the JSON define logic
+  }
+
+  /// Get the directory path of a resource
+  static String RESOURCE_DIR(String resourcePath) {
+    final location = Location(
+      file: Macros.file,
+      line: Macros.line,
+      column: 1,
+    );
+
+    // Try to get all possible paths
+    final allPaths = ResourceLoader.getAllPossiblePaths(resourcePath, location);
+
+    // Check each path for existence
+    for (final fullPath in allPaths) {
+      if (FileSystemEntity.isFileSync(fullPath)) {
+        return path.dirname(fullPath);
+      }
+    }
+
+    // If no file exists, return the first potential location
+    return path.dirname(allPaths.first);
+  }
+
+  /// Check if a resource exists in any of the possible locations
+  static Future<bool> RESOURCE_EXISTS(String resourcePath) async {
+    final location = Location(
+      file: Macros.file,
+      line: Macros.line,
+      column: 1,
+    );
+
+    // Try all possible paths
+    final allPaths = ResourceLoader.getAllPossiblePaths(resourcePath, location);
+
+    // Check each path
+    for (final fullPath in allPaths) {
+      if (await File(fullPath).exists()) {
+        // Also verify extension is allowed
+        if (ResourceLoader.isAllowedExtension(fullPath)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  static void _defineFromMap(String prefix, Map<String, dynamic> map) {
+    map.forEach((key, value) {
+      final macroName = prefix.isEmpty ? key : '${prefix}_$key';
+
+      if (value is Map) {
+        _defineFromMap(macroName, value as Map<String, dynamic>);
+      } else if (value is List) {
+        Macros.define(macroName, value.join(','));
+      } else {
+        Macros.define(macroName, value.toString());
+      }
+    });
+  }
+
+  /// Get an environment variable value
+  static String? ENV(String name) {
+    final snapshot = EnvironmentData.getEnvironmentSnapshot();
+    return snapshot[name];
+  }
+
+  /// Get a build configuration value
+  static Future<String?> BUILD_CONFIG(String key) async {
+    final location = Location(
+      file: Macros.file,
+      line: Macros.line,
+      column: 1,
+    );
+    final config = await EnvironmentData.getBuildConfig(location);
+    return config[key];
+  }
+
+  /// Check if running in a CI environment
+  static bool IS_CI() {
+    final env = EnvironmentData.getEnvironmentSnapshot();
+    return env['CI'] == 'true' ||
+        env.containsKey('BUILD_NUMBER') ||
+        env.containsKey('GITHUB_SHA');
+  }
+
+  /// Get the current platform information
+  static Map<String, String> PLATFORM_INFO() {
+    final env = EnvironmentData.getEnvironmentSnapshot();
+    return {
+      'os': env['PLATFORM_OS']!,
+      'version': env['PLATFORM_VERSION']!,
+      'locale': env['PLATFORM_LOCALE']!,
+      'processors': env['PLATFORM_NUMBER_OF_PROCESSORS']!,
+    };
+  }
+
+  /// Get all environment variables with a specific prefix
+  static Map<String, String> ENV_WITH_PREFIX(String prefix) {
+    final snapshot = EnvironmentData.getEnvironmentSnapshot();
+    return Map.fromEntries(
+        snapshot.entries.where((e) => e.key.startsWith(prefix))
+    );
   }
 }

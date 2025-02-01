@@ -1,0 +1,14 @@
+Dear {USER_NAME},
+
+Thank you for using {APP_NAME}!
+
+We are excited to announce the release of version {VERSION}. This update includes several new features and improvements:
+
+- Feature 1
+- Feature 2
+- Feature 3
+
+We hope you enjoy the new version. If you have any questions or feedback, please do not hesitate to contact us.
+
+Best regards,
+The {APP_NAME} Team

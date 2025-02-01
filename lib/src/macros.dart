@@ -46,6 +46,20 @@ class Macros {
     }
   }
 
+  /// Define a macro value
+  static void define(String name, dynamic value) {
+    _initialize();
+    _values[name] = value;
+  }
+
+  /// Get all current macro values
+  static Map<String, dynamic> getAllValues() {
+    _initialize();
+    return Map.unmodifiable(_values);
+  }
+
+  /// Update location-based macros
+
   static void _updateLocation() {
     final trace = Trace.current();
     Frame? userFrame;
