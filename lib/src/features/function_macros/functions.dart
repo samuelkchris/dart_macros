@@ -52,7 +52,7 @@ extension MacroFunctions on Macros {
 
   // Feature flag operations
   static bool IS_FEATURE_ENABLED(String featureFlag) =>
-      Macros.get<bool>('_FEATURE_${featureFlag.toUpperCase()}') ?? false;
+      Macros.get<bool>('_FEATURE_${featureFlag.toUpperCase()}');
 
   // Internal evaluator
   static dynamic _evalMacro(String name, List<dynamic> args) {
@@ -65,7 +65,7 @@ extension MacroFunctions on Macros {
   }
 
   // Debug checks
-  static bool IS_DEBUG() => Macros.get<bool>('__DEBUG__') ?? false;
+  static bool IS_DEBUG() => Macros.get<bool>('__DEBUG__');
 
   // Platform checks
   static bool IS_PLATFORM(String platform) =>

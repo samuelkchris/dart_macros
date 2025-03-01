@@ -22,7 +22,6 @@ import 'package:dart_macros/dart_macros.dart';
 
 class AppConfig {
   // App won't initialize twice
-  static final bool _initialized = false;
 
   // Configuration getters
   static String get appName => Macros.get<String>('APP_NAME');

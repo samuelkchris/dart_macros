@@ -209,18 +209,18 @@ class ExpressionEvaluator {
   /// ```
   ///
   /// Throws [FormatException] if the ternary expression is malformed.
-  static dynamic _evaluateTernary(String expr) {
-    final qIndex = expr.indexOf('?');
-    final cIndex = expr.indexOf(':', qIndex);
-
-    if (qIndex == -1 || cIndex == -1) {
-      throw FormatException('Invalid ternary expression: $expr');
-    }
-
-    final condition = evaluate(expr.substring(0, qIndex).trim());
-    final ifTrue = expr.substring(qIndex + 1, cIndex).trim();
-    final ifFalse = expr.substring(cIndex + 1).trim();
-
-    return condition == true ? evaluate(ifTrue) : evaluate(ifFalse);
-  }
+  // static dynamic _evaluateTernary(String expr) {
+  //   final qIndex = expr.indexOf('?');
+  //   final cIndex = expr.indexOf(':', qIndex);
+  //
+  //   if (qIndex == -1 || cIndex == -1) {
+  //     throw FormatException('Invalid ternary expression: $expr');
+  //   }
+  //
+  //   final condition = evaluate(expr.substring(0, qIndex).trim());
+  //   final ifTrue = expr.substring(qIndex + 1, cIndex).trim();
+  //   final ifFalse = expr.substring(cIndex + 1).trim();
+  //
+  //   return condition == true ? evaluate(ifTrue) : evaluate(ifFalse);
+  // }
 }

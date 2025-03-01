@@ -120,7 +120,7 @@ class DataClassGenerator extends GeneratorForAnnotation<Data> {
 
   String _generateCopyWith(String className, Iterable<FieldElement> fields) {
     final params = fields.map((f) {
-      final type = f.type.getDisplayString(withNullability: true);
+      final type = f.type.getDisplayString();
       return '$type? ${f.name}';
     }).join(', ');
 
@@ -147,7 +147,7 @@ class DataClassGenerator extends GeneratorForAnnotation<Data> {
 
   String _generateFromMap(String className, Iterable<FieldElement> fields) {
     final params = fields.map((f) {
-      final type = f.type.getDisplayString(withNullability: false);
+      final type = f.type.getDisplayString();
       return "map['${f.name}'] as $type";
     }).join(', ');
 
