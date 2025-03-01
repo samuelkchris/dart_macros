@@ -1,43 +1,50 @@
 import 'dart:io';
 import 'package:path/path.dart' as path;
-import '../../../dart_macros.dart';
-import '../../core/location.dart';
 import 'package:yaml/yaml.dart';
 
+import '../../core/location.dart';
+import '../../core/macro_processor.dart';
+import '../resource_loading/resource_loader.dart';
 
-/// Manages environment data access for macros
+/// Manages environment data access for macros and build-time configuration.
 class EnvironmentData {
-  /// Whitelist of allowed environment variables
+  /// Whitelist of allowed environment variables.
+  /// You can also allow variables with specific prefixes.
   static const _allowedEnvVars = {
-    // Build-related
+    // Exact matches:
     'DART_SDK_VERSION',
     'FLUTTER_ROOT',
     'PUB_CACHE',
     'PUB_HOSTED_URL',
 
-    // Platform/architecture
+    // Platform/architecture:
     'PROCESSOR_ARCHITECTURE',
     'NUMBER_OF_PROCESSORS',
 
-    // Common CI variables
+    // Common CI variables:
     'CI',
     'BUILD_NUMBER',
     'BUILD_ID',
     'GITHUB_SHA',
     'GITHUB_REF',
 
-    // Custom prefixes
+    // Custom prefixes:
     'DART_DEFINE_',
     'BUILD_',
     'APP_',
+    // You can add additional prefixes if needed:
+    'CUSTOM_',
   };
 
-  /// Cache of environment snapshots
+  /// Cache for environment snapshots to avoid redundant computation.
   static final Map<String, String> _envCache = {};
 
-  /// Get a snapshot of allowed environment variables
+  /// Retrieves a snapshot of allowed environment variables.
+  ///
+  /// If a cached version is available, it returns that. Otherwise,
+  /// it filters [Platform.environment] based on [_allowedEnvVars],
+  /// adds build-time constants, caches, and returns the result.
   static Map<String, String> getEnvironmentSnapshot() {
-    // Return cached version if available
     if (_envCache.isNotEmpty) {
       return Map.unmodifiable(_envCache);
     }
@@ -45,92 +52,100 @@ class EnvironmentData {
     final env = Platform.environment;
     final snapshot = <String, String>{};
 
-    // Add whitelisted environment variables
+    // Add whitelisted environment variables (exact match or prefix)
     for (final key in env.keys) {
       if (_isAllowedEnvVar(key)) {
         snapshot[key] = env[key]!;
       }
     }
 
-    // Add build-time constants
+    // Add build-time constants from Platform.
     snapshot['DART_VERSION'] = Platform.version;
     snapshot['PLATFORM_OS'] = Platform.operatingSystem;
     snapshot['PLATFORM_VERSION'] = Platform.operatingSystemVersion;
     snapshot['PLATFORM_LOCALE'] = Platform.localeName;
-    snapshot['PLATFORM_NUMBER_OF_PROCESSORS'] = Platform.numberOfProcessors.toString();
+    snapshot['PLATFORM_NUMBER_OF_PROCESSORS'] =
+        Platform.numberOfProcessors.toString();
 
-    // Cache the snapshot
     _envCache.addAll(snapshot);
     return Map.unmodifiable(snapshot);
   }
 
-  /// Check if an environment variable is allowed
+  /// Checks if a given environment variable [name] is allowed.
+  ///
+  /// Returns `true` if the variable matches an exact name in [_allowedEnvVars]
+  /// or if it starts with any prefix that ends with an underscore.
   static bool _isAllowedEnvVar(String name) {
-    // Check direct matches
+    // Direct match check.
     if (_allowedEnvVars.contains(name)) return true;
 
-    // Check prefixes
-    return _allowedEnvVars.any((prefix) =>
-    prefix.endsWith('_') && name.startsWith(prefix));
+    // Check for allowed prefixes.
+    return _allowedEnvVars.any(
+          (prefix) => prefix.endsWith('_') && name.startsWith(prefix),
+    );
   }
 
-  /// Get a build configuration snapshot
+  /// Retrieves the build configuration snapshot by merging data from
+  /// build.yaml and Dart defines.
   static Future<Map<String, String>> getBuildConfig(Location location) async {
     final config = <String, String>{};
 
-    // Try to load from build.yaml if it exists
+    // Load configuration from build.yaml (if available)
     final buildConfig = await _loadBuildConfig(location);
     if (buildConfig != null) {
       config.addAll(buildConfig);
     }
 
-    // Add Dart defines
+    // Merge Dart defines from the environment.
     final dartDefines = _getDartDefines();
     config.addAll(dartDefines);
 
     return Map.unmodifiable(config);
   }
 
-  /// Load build configuration from build.yaml
+  /// Attempts to load build configuration from a build.yaml file located
+  /// at the project root. Returns a flattened map if found, or null otherwise.
   static Future<Map<String, String>?> _loadBuildConfig(Location location) async {
     try {
-      final projectRoot = ResourceLoader._findProjectRoot(location.file);
+      final projectRoot = ResourceLoader.findProjectRoot(location.file);
       final buildFile = File(path.join(projectRoot, 'build.yaml'));
 
       if (await buildFile.exists()) {
         final content = await buildFile.readAsString();
         final yaml = loadYaml(content) as Map?;
-
         if (yaml != null) {
           return _flattenMap(yaml);
         }
       }
     } catch (e) {
-      // Silently fail - build config is optional
+      // Silently fail: build configuration is optional.
     }
     return null;
   }
 
-  /// Get Dart defines from environment
+  /// Extracts Dart defines from the environment that start with 'DART_DEFINE_'.
+  ///
+  /// Returns a map where the prefix 'DART_DEFINE_' is removed from the key.
   static Map<String, String> _getDartDefines() {
     final defines = <String, String>{};
-
     Platform.environment.forEach((key, value) {
       if (key.startsWith('DART_DEFINE_')) {
         defines[key.substring(12)] = value;
       }
     });
-
     return defines;
   }
 
-  /// Flatten a nested map into dot-notation
+  /// Flattens a nested YAML [Map] into dot-notation.
+  ///
+  /// For example: `{a: {b: c}}` becomes `{'a.b': 'c'}`.
+  /// An optional [prefix] can be provided for recursive calls.
   static Map<String, String> _flattenMap(Map yaml, [String prefix = '']) {
     final result = <String, String>{};
 
     yaml.forEach((key, value) {
-      final newKey = prefix.isEmpty ? key.toString() : '$prefix.$key';
-
+      final newKey =
+      prefix.isEmpty ? key.toString() : '$prefix.$key';
       if (value is Map) {
         result.addAll(_flattenMap(value, newKey));
       } else {
@@ -142,11 +157,15 @@ class EnvironmentData {
   }
 }
 
-/// Extension for MacroProcessor to support environment data
+/// Extension for [MacroProcessor] to integrate environment data
+/// as compile-time macros.
 extension EnvironmentExtension on MacroProcessor {
-  /// Define environment variables as macros
+  /// Defines environment and build configuration variables as macros.
+  ///
+  /// For each allowed environment variable, a macro is defined with the name
+  /// `_ENV_$key` and for each build configuration value with `_BUILD_$key`.
   Future<void> defineEnvironmentMacros(Location location) async {
-    // Get environment snapshot
+    // Define environment variables as macros.
     final env = EnvironmentData.getEnvironmentSnapshot();
     env.forEach((key, value) {
       define(
@@ -156,7 +175,7 @@ extension EnvironmentExtension on MacroProcessor {
       );
     });
 
-    // Get build configuration
+    // Define build configuration variables as macros.
     final buildConfig = await EnvironmentData.getBuildConfig(location);
     buildConfig.forEach((key, value) {
       define(

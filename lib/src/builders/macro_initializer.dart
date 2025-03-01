@@ -1,6 +1,6 @@
 import 'package:build/build.dart';
 import 'package:source_gen/source_gen.dart';
-import 'package:dart_macros/src/annotations.dart';
+import 'package:dart_macros/src/annotations/annotations.dart';
 
 class MacroInitializerBuilder implements Builder {
   @override

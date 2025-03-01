@@ -1,6 +1,6 @@
 import 'dart:mirrors';
 
-import '../annotations.dart';
+import '../annotations/annotations.dart';
 
 /// Runtime macro processor
 class RuntimeMacroProcessor {

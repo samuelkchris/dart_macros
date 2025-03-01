@@ -22,14 +22,14 @@ import 'package:dart_macros/dart_macros.dart';
 
 class AppConfig {
   // App won't initialize twice
-  static bool _initialized = false;
+  static final bool _initialized = false;
 
   // Configuration getters
   static String get appName => Macros.get<String>('APP_NAME');
   static String get version => Macros.get<String>('VERSION');
   static int get buildNumber => Macros.get<int>('BUILD_NUMBER');
   static String get fullVersion =>
-      MacroFunctions.CONCAT('v$version', '(${buildNumber})');
+      MacroFunctions.CONCAT('v$version', '($buildNumber)');
 
   // Feature checks
   static bool get isDarkModeEnabled =>

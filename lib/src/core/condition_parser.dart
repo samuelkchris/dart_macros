@@ -1,8 +1,51 @@
+/// A parser that evaluates conditional expressions based on defined macro values.
+///
+/// The [ConditionParser] is used to evaluate conditions commonly found in
+/// preprocessor directives, such as `#ifdef`, `#ifndef`, and general boolean
+/// expressions. It supports:
+/// * Preprocessor-style checks (`#ifdef`, `#ifndef`)
+/// * Equality comparisons (`==`)
+/// * Greater than or equal comparisons (`>=`)
+/// * Logical AND (`&&`)
+/// * Logical OR (`||`)
+/// * Direct value checks
 class ConditionParser {
+  /// Map of defined macro names to their values.
+  ///
+  /// This map contains all macro definitions that can be referenced in conditions.
   final Map<String, dynamic> _defines;
 
+  /// Creates a new [ConditionParser] with the given macro definitions.
+  ///
+  /// Example:
+  /// ```dart
+  /// final parser = ConditionParser({
+  ///   'DEBUG': true,
+  ///   'API_VERSION': 2,
+  ///   'PLATFORM': 'android'
+  /// });
+  /// ```
   ConditionParser(this._defines);
 
+  /// Evaluates a conditional expression and returns its boolean result.
+  ///
+  /// The condition can be any of the supported expression types:
+  /// * `#ifdef SYMBOL` - checks if SYMBOL is defined
+  /// * `#ifndef SYMBOL` - checks if SYMBOL is not defined
+  /// * `value1 == value2` - equality comparison
+  /// * `value1 >= value2` - greater than or equal comparison
+  /// * `condition1 && condition2` - logical AND
+  /// * `condition1 || condition2` - logical OR
+  ///
+  /// Example:
+  /// ```dart
+  /// parser.evaluate('#ifdef DEBUG'); // true if DEBUG is defined
+  /// parser.evaluate('API_VERSION >= 2'); // true if API_VERSION >= 2
+  /// parser.evaluate('PLATFORM == "android"'); // true if PLATFORM equals "android"
+  /// ```
+  ///
+  /// [condition] The condition to evaluate
+  /// Returns `true` if the condition evaluates to true, `false` otherwise
   bool evaluate(String condition) {
     condition = condition.trim();
 
@@ -48,6 +91,15 @@ class ConditionParser {
     return _getValue(condition) == true;
   }
 
+  /// Gets the value of a condition part, handling literals and macro lookups.
+  ///
+  /// This method:
+  /// * Handles string literals (quoted strings)
+  /// * Handles number literals (integers and doubles)
+  /// * Looks up values in the defines map
+  ///
+  /// [key] The key or literal to get the value for
+  /// Returns the value of the key or literal
   dynamic _getValue(String key) {
     // Handle string literals
     if (key.startsWith('"') && key.endsWith('"')) {

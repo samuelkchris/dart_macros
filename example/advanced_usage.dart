@@ -12,22 +12,22 @@ import 'package:dart_macros/dart_macros.dart';
 @DefineMacro(
   'CONCAT',
   'a + b',  // Simplified concatenation
-  parameters: const ['a', 'b'],
+  parameters: ['a', 'b'],
 )
 @DefineMacro(
   'MAKE_GETTER',
   'type get name() => _name',  // Fixed getter syntax
-  parameters: const ['type', 'name'],
+  parameters: ['type', 'name'],
 )
 @DefineMacro(
   'LOG_CALL',
   '"Calling " + func + " at " + __FILE__ + ":" + __LINE__',  // Removed extra parentheses
-  parameters: const ['func'],
+  parameters: ['func'],
 )
 @DefineMacro(
   'DEBUG_PRINT',
   '"Debug [" + __FILE__ + ":" + __LINE__ + "]: " + text',  // Removed extra parentheses
-  parameters: const ['text'],
+  parameters: ['text'],
 )
 class AdvancedExample {
   final String _name;

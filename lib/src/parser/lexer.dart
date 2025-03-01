@@ -240,13 +240,13 @@ class MacroLexer {
 
   /// Look at current character
   String _peek() {
-    if (_isAtEnd()) return '\0';
+    if (_isAtEnd()) return '0';
     return source[_current];
   }
 
   /// Look at next character
   String _peekNext() {
-    if (_current + 1 >= source.length) return '\0';
+    if (_current + 1 >= source.length) return '0';
     return source[_current + 1];
   }
 

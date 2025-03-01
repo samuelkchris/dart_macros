@@ -2,7 +2,7 @@ import 'dart:mirrors';
 import 'package:stack_trace/stack_trace.dart';
 import 'package:path/path.dart' as path;
 import 'features/predefined_macros/definitions.dart';
-import 'annotations.dart';
+import 'annotations/annotations.dart';
 
 class Macros {
   static final Map<String, dynamic> _values = {};

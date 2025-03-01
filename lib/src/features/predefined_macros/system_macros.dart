@@ -108,16 +108,15 @@ class SystemMacros {
     String platform = '';
     if (Platform.isAndroid) {
       platform = 'android';
-    } else if (Platform.isIOS)
-
+    } else if (Platform.isIOS) {
       platform = 'ios';
-
-    else if (Platform.isLinux)
+    } else if (Platform.isLinux) {
       platform = 'linux';
-    else if (Platform.isMacOS)
+    } else if (Platform.isMacOS) {
       platform = 'macos';
-    else if (Platform.isWindows)
+    } else if (Platform.isWindows) {
       platform = 'windows';
+    }
     // else if (Platform.isWeb) platform = 'web';
 
     return MacroDefinition(

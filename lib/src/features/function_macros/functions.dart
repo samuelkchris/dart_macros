@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:yaml/yaml.dart';
-import '../../../dart_macros.dart';
-import 'core/condition_parser.dart';
-import 'core/location.dart';
-import 'core/evaluator.dart';
-import 'features/environment/environment_data.dart';
+import '../../../../../dart_macros.dart';
+import '../../core/condition_parser.dart';
+import '../../core/location.dart';
+import '../../core/evaluator.dart';
+import '../environments/environment_data.dart';
 
 /// Built-in macro functions extension
 extension MacroFunctions on Macros {
@@ -57,12 +57,8 @@ extension MacroFunctions on Macros {
   // Internal evaluator
   static dynamic _evalMacro(String name, List<dynamic> args) {
     try {
-      final result =
-          Macros.processMacro(name, args.map((e) => e.toString()).toList());
-
-      if (result == null) return null;
-
-      return ExpressionEvaluator.evaluate(result);
+      final result = ExpressionEvaluator.evaluate(name);
+      return result;
     } catch (e) {
       throw MacroUsageException('Error evaluating macro $name: $e');
     }
@@ -81,7 +77,7 @@ extension MacroFunctions on Macros {
   static bool IS_LEGACY_API() => Macros.get<int>('API_VERSION') < 2;
 
   static bool HAS_FEATURE(String feature) =>
-      Macros.get<bool>('FEATURE_${feature.toUpperCase()}') ?? false;
+      Macros.get<bool>('FEATURE_${feature.toUpperCase()}');
 
   static bool IF(String condition) {
     final defines = getAllValues();
@@ -141,12 +137,8 @@ extension MacroFunctions on Macros {
         // Try to convert value to appropriate type
         if (value.toLowerCase() == 'true' || value.toLowerCase() == 'false') {
           Macros.define(name, value.toLowerCase() == 'true');
-        } else if (value.startsWith('"') && value.endsWith('"')) {
-          Macros.define(name, value.substring(1, value.length - 1));
-        } else if (int.tryParse(value) != null) {
-          Macros.define(name, int.parse(value));
-        } else if (double.tryParse(value) != null) {
-          Macros.define(name, double.parse(value));
+        } else if (num.tryParse(value) != null) {
+          Macros.define(name, num.parse(value));
         } else {
           Macros.define(name, value);
         }
@@ -171,14 +163,14 @@ extension MacroFunctions on Macros {
   static void _defineFromJson(String prefix, dynamic value) {
     if (value is Map) {
       if (prefix.isNotEmpty) {
-        // Store the entire map under its prefix
-        Macros.define(prefix, value);
+        value.forEach((key, val) {
+          _defineFromJson('$prefix.$key', val);
+        });
+      } else {
+        value.forEach((key, val) {
+          _defineFromJson(key, val);
+        });
       }
-      // Also store individual values
-      value.forEach((key, val) {
-        final macroName = prefix.isEmpty ? key : '${prefix}_$key';
-        _defineFromJson(macroName, val);
-      });
     } else if (value is List) {
       Macros.define(prefix, value);
     } else if (value is bool) {
@@ -194,9 +186,8 @@ extension MacroFunctions on Macros {
   static dynamic _convertYamlToMap(dynamic yaml) {
     if (yaml is YamlMap) {
       return Map<String, dynamic>.fromEntries(
-        yaml.entries.map(
-          (e) => MapEntry(e.key.toString(), _convertYamlToMap(e.value)),
-        ),
+        yaml.entries
+            .map((e) => MapEntry(e.key.toString(), _convertYamlToMap(e.value))),
       );
     }
     if (yaml is YamlList) {
@@ -265,19 +256,19 @@ extension MacroFunctions on Macros {
     return false;
   }
 
-  static void _defineFromMap(String prefix, Map<String, dynamic> map) {
-    map.forEach((key, value) {
-      final macroName = prefix.isEmpty ? key : '${prefix}_$key';
-
-      if (value is Map) {
-        _defineFromMap(macroName, value as Map<String, dynamic>);
-      } else if (value is List) {
-        Macros.define(macroName, value.join(','));
-      } else {
-        Macros.define(macroName, value.toString());
-      }
-    });
-  }
+  // static void _defineFromMap(String prefix, Map<String, dynamic> map) {
+  //   map.forEach((key, value) {
+  //     final macroName = prefix.isEmpty ? key : '${prefix}_$key';
+  //
+  //     if (value is Map) {
+  //       _defineFromMap(macroName, value);
+  //     } else if (value is List) {
+  //       Macros.define(macroName, value);
+  //     } else {
+  //       Macros.define(macroName, value.toString());
+  //     }
+  //   });
+  // }
 
   /// Get an environment variable value
   static String? ENV(String name) {
@@ -319,7 +310,31 @@ extension MacroFunctions on Macros {
   static Map<String, String> ENV_WITH_PREFIX(String prefix) {
     final snapshot = EnvironmentData.getEnvironmentSnapshot();
     return Map.fromEntries(
-        snapshot.entries.where((e) => e.key.startsWith(prefix))
-    );
+        snapshot.entries.where((e) => e.key.startsWith(prefix)));
+  }
+}
+
+extension JsonMacros on Macros {
+  static String TO_JSON(Map<String, dynamic> data) => jsonEncode(data);
+
+  static Map<String, dynamic> FROM_JSON(String json) =>
+      jsonDecode(json) as Map<String, dynamic>;
+}
+
+extension DataClassMacros on Macros {
+  static T COPY_WITH<T>(T obj, Map<String, dynamic> updates) {
+    final map = DataClassMacros.TO_MAP(obj);
+    map.addAll(updates);
+    return DataClassMacros.FROM_MAP<T>(map);
+  }
+
+  static Map<String, dynamic> TO_MAP(dynamic obj) {
+    if (obj is Map) return Map<String, dynamic>.from(obj);
+    return obj.toMap() as Map<String, dynamic>;
+  }
+
+  static T FROM_MAP<T>(Map<String, dynamic> map) {
+    final type = T.toString();
+    return Macros.get<T>('${type}_fromMap')!;
   }
 }

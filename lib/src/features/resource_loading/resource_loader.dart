@@ -192,6 +192,27 @@ class ResourceLoader {
     return path.dirname(startPath);
   }
 
+  /// Find the project root directory by looking for pubspec.yaml for a resource getter
+  /// findProjectRoot
+  ///
+  /// [startPath] is the path to start searching from
+  /// Returns the project root directory
+  ///
+
+  static String findProjectRoot(String startPath) {
+    var dir = path.normalize(path.absolute(startPath));
+    while (dir.length > path.rootPrefix(dir).length) {
+      if (File(path.join(dir, 'pubspec.yaml')).existsSync()) {
+        return dir;
+      }
+      final parent = path.dirname(dir);
+      if (parent == dir) break;
+      dir = parent;
+    }
+    // If we can't find project root, return the original directory
+    return path.dirname(startPath);
+  }
+
   /// Check if the file extension is allowed
   static bool _isAllowedExtension(String filePath) {
     final ext = path.extension(filePath).toLowerCase();
@@ -221,6 +242,8 @@ class ResourceLoader {
     }
     _allowedExtensions.add(extension.toLowerCase());
   }
+
+  ///
 }
 
 /// Extension methods for MacroProcessor to support resource loading
