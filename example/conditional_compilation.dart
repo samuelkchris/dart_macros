@@ -354,7 +354,6 @@ class Api {
 
 void main() async {
   final api = Api();
-
   try {
     await api.initialize();
     await api.performOperation();
