@@ -4,7 +4,7 @@ import 'package:dart_macros/dart_macros.dart';
 class ResourceExample {
   Future<void> loadConfigurations() async {
     // Load properties file
-    await MacroFunctions.LOAD_PROPERTIES('config/app.properties');
+    await MacroFunctions.LOAD_PROPERTIES('../config/app.properties');
     print('App Name: ${Macros.get<String>("app.name")}');
     print('Version: ${Macros.get<String>("app.version")}');
     print('Environment: ${Macros.get<String>("app.environment")}');
@@ -23,7 +23,7 @@ class ResourceExample {
     print('Cloud Sync: ${Macros.get<bool>("feature.cloud_sync")}');
 
     // Load JSON configuration
-    await MacroFunctions.LOAD_JSON('config/features.json');
+    await MacroFunctions.LOAD_JSON('../config/features.json');
     print('\nJSON Config:');
     print('Dark Mode: ${Macros.get<bool>("FEATURE_DARK_MODE")}');
     print('Analytics: ${Macros.get<bool>("FEATURE_ANALYTICS")}');
@@ -39,7 +39,7 @@ class ResourceExample {
     print('  Background: ${Macros.get<String>("UI.COLORS.BACKGROUND")}');
 
     // Load YAML configuration with error handling
-    await MacroFunctions.LOAD_YAML('config/env.yaml');
+    await MacroFunctions.LOAD_YAML('../config/env.yaml');
     print('\nYAML Config:');
     print('API URL: ${Macros.get<String>('API_URL')}');
     print('Environment: ${Macros.get<String>('ENVIRONMENT')}');
