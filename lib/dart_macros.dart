@@ -194,6 +194,8 @@ export 'src/features/resource_loading/resource_loader.dart';
 /// Resource macros and related helpers.
 export 'src/features/resource_loading/resource_macros.dart';
 
+export 'src/flutter_macros.dart';
+
 /// Initializes the Dart macros package.
 ///
 /// This function now returns immediately as the initialization is

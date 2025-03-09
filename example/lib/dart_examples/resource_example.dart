@@ -28,25 +28,28 @@ class ResourceExample {
     print('Dark Mode: ${Macros.get<bool>("FEATURE_DARK_MODE")}');
     print('Analytics: ${Macros.get<bool>("FEATURE_ANALYTICS")}');
     print('Cloud Sync: ${Macros.get<bool>("FEATURE_CLOUD_SYNC")}');
-
-    // Access nested JSON structure
-    final ui = Macros.get<Map<String, dynamic>>('UI');
+    // Access flattened UI configuration
     print('\nUI Configuration:');
-    print('Theme: ${ui['THEME']}');
-    print('Animations: ${ui['ANIMATIONS']}');
+    print('Theme: ${Macros.get<String>("UI.THEME")}');
+    print('Animations: ${Macros.get<bool>("UI.ANIMATIONS")}');
 
-    final colors = ui['COLORS'] as Map<String, dynamic>;
     print('Colors:');
-    print('  Primary: ${colors['PRIMARY']}');
-    print('  Secondary: ${colors['SECONDARY']}');
-    print('  Background: ${colors['BACKGROUND']}');
+    print('  Primary: ${Macros.get<String>("UI.COLORS.PRIMARY")}');
+    print('  Secondary: ${Macros.get<String>("UI.COLORS.SECONDARY")}');
+    print('  Background: ${Macros.get<String>("UI.COLORS.BACKGROUND")}');
 
-    // Load YAML configuration
+    // Load YAML configuration with error handling
     await MacroFunctions.LOAD_YAML('config/env.yaml');
     print('\nYAML Config:');
     print('API URL: ${Macros.get<String>('API_URL')}');
     print('Environment: ${Macros.get<String>('ENVIRONMENT')}');
-    print('Cache TTL: ${Macros.get<int>('CACHE_TTL')}');
+
+    // Handle potentially missing CACHE_TTL
+    try {
+      print('Cache TTL: ${Macros.get<int>('CACHE_TTL')}');
+    } catch (e) {
+      print('Cache TTL: Not defined');
+    }
   }
 
   Future<void> processTemplates() async {

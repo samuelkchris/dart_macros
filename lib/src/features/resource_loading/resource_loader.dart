@@ -4,9 +4,28 @@ import 'package:path/path.dart' as path;
 import '../../../dart_macros.dart';
 import '../../core/location.dart';
 
-/// Handles safe loading of resources relative to macro source files
+/// Handles safe loading of resources relative to macro source files.
+///
+/// The [ResourceLoader] provides secure, controlled access to resource files
+/// for macro processing. It implements several safety mechanisms:
+/// - Whitelist approach to file extensions
+/// - File size limits
+/// - Multiple resolution strategies for finding resources
+/// - Caching for performance optimization
+///
+/// This class is essential for allowing macros to reference external resources
+/// while maintaining security and performance.
+///
+/// Example usage:
+/// ```dart
+/// final content = await ResourceLoader.loadResource('config.json', location);
+/// ```
 class ResourceLoader {
-  /// Allowed file extensions that can be loaded
+  /// Allowed file extensions that can be loaded.
+  ///
+  /// This whitelist ensures that only safe file types can be accessed
+  /// through the resource loader, preventing access to sensitive or
+  /// executable files.
   static const _allowedExtensions = {
     '.txt',
     '.json',
@@ -21,39 +40,56 @@ class ResourceLoader {
     '.toml'
   };
 
-  /// Maximum allowed file size (5MB)
+  /// Maximum allowed file size (5MB).
+  ///
+  /// This limit prevents loading excessively large files which could
+  /// cause memory issues or be used for denial of service attacks.
   static const _maxFileSize = 5 * 1024 * 1024;
 
-  /// Cache of loaded resources
+  /// Cache of loaded resources.
+  ///
+  /// This cache improves performance by storing previously loaded
+  /// resources, avoiding repeated file I/O operations.
   static final Map<String, String> _cache = {};
 
-  /// Load a resource relative to the current source file
+  /// Loads a resource relative to the current source file.
   ///
-  /// [resourcePath] is the path relative to [sourceLocation]
-  /// Returns the content of the resource as a string
+  /// This method attempts to locate and load a resource using several
+  /// resolution strategies. It implements safety checks for file type
+  /// and size, and provides caching for performance.
+  ///
+  /// Parameters:
+  /// - [resourcePath]: The path to the resource, relative to [sourceLocation]
+  /// - [sourceLocation]: The source location for resolving relative paths
+  ///
+  /// Returns:
+  /// The content of the resource as a string
+  ///
+  /// Throws:
+  /// - [MacroUsageException] if the resource cannot be found or is invalid
   static Future<String> loadResource(
       String resourcePath, Location sourceLocation) async {
     final resolvedPaths = _getAllPossiblePaths(resourcePath, sourceLocation);
     String? content;
 
     for (final resolvedPath in resolvedPaths) {
-      // Check cache first
+      /* Check cache first */
       if (_cache.containsKey(resolvedPath)) {
         return _cache[resolvedPath]!;
       }
 
-      // Validate file extension
+      /* Validate file extension */
       if (!_isAllowedExtension(resolvedPath)) {
         continue; // Try next path instead of throwing
       }
 
-      // Check if file exists
+      /* Check if file exists */
       final file = File(resolvedPath);
       if (!await file.exists()) {
         continue; // Try next path
       }
 
-      // Check file size
+      /* Check file size */
       final size = await file.length();
       if (size > _maxFileSize) {
         throw MacroUsageException(
@@ -63,7 +99,7 @@ class ResourceLoader {
       }
 
       try {
-        // Read and cache the content
+        /* Read and cache the content */
         content = await file.readAsString();
         _cache[resolvedPath] = content;
         return content;
@@ -72,17 +108,27 @@ class ResourceLoader {
       }
     }
 
-    // If we get here, no valid file was found
+    /* If we get here, no valid file was found */
     throw MacroUsageException(
       'Resource not found: $resourcePath\nTried paths:\n${resolvedPaths.join('\n')}',
       sourceLocation,
     );
   }
 
-  /// Load a binary resource relative to the current source file
+  /// Loads a binary resource relative to the current source file.
   ///
-  /// [resourcePath] is the path relative to [sourceLocation]
-  /// Returns the content of the resource as bytes
+  /// Similar to [loadResource], but returns the content as bytes instead
+  /// of a string, suitable for binary file formats.
+  ///
+  /// Parameters:
+  /// - [resourcePath]: The path to the resource, relative to [sourceLocation]
+  /// - [sourceLocation]: The source location for resolving relative paths
+  ///
+  /// Returns:
+  /// The content of the resource as a list of bytes
+  ///
+  /// Throws:
+  /// - [MacroUsageException] if the resource cannot be found or is invalid
   static Future<List<int>> loadBinaryResource(
       String resourcePath,
       Location sourceLocation,
@@ -90,18 +136,18 @@ class ResourceLoader {
     final resolvedPaths = _getAllPossiblePaths(resourcePath, sourceLocation);
 
     for (final resolvedPath in resolvedPaths) {
-      // Validate file extension
+      /* Validate file extension */
       if (!_isAllowedExtension(resolvedPath)) {
         continue;
       }
 
-      // Check if file exists
+      /* Check if file exists */
       final file = File(resolvedPath);
       if (!await file.exists()) {
         continue;
       }
 
-      // Check file size
+      /* Check file size */
       final size = await file.length();
       if (size > _maxFileSize) {
         throw MacroUsageException(
@@ -123,61 +169,89 @@ class ResourceLoader {
     );
   }
 
-  /// Get all possible paths for a resource
+  /// Gets all possible paths for a resource.
+  ///
+  /// This method implements the resolution strategy for finding resources,
+  /// trying several locations in order of priority:
+  /// 1. Absolute path (if provided)
+  /// 2. Relative to the source file
+  /// 3. Relative to the project root
+  /// 4. Relative to the current working directory
+  ///
+  /// Parameters:
+  /// - [resourcePath]: The resource path to resolve
+  /// - [sourceLocation]: The source location for path resolution
+  ///
+  /// Returns:
+  /// A list of possible absolute file paths to try
   static List<String> _getAllPossiblePaths(String resourcePath, Location sourceLocation) {
     final paths = <String>[];
 
-    // 1. If absolute path, only try that
+    /* 1. If absolute path, only try that */
     if (path.isAbsolute(resourcePath)) {
       paths.add(path.normalize(resourcePath));
       return paths;
     }
 
-    // 2. Relative to source file
+    /* 2. Relative to source file */
     final sourceDir = path.dirname(path.absolute(sourceLocation.file));
     paths.add(path.normalize(path.join(sourceDir, resourcePath)));
 
-    // 3. Relative to project root
+    /* 3. Relative to project root */
     final projectRoot = _findProjectRoot(sourceLocation.file);
     paths.add(path.normalize(path.join(projectRoot, resourcePath)));
 
-    // 4. Relative to current working directory
+    /* 4. Relative to current working directory */
     paths.add(path.normalize(path.join(Directory.current.path, resourcePath)));
 
     return paths.toSet().toList(); // Remove duplicates
   }
 
-  /// Get all possible paths for a resource getter
-  /// getAllPossiblePaths
+  /// Gets all possible paths for a resource (public version).
   ///
-  /// [resourcePath] is the path relative to [sourceLocation]
-  /// Returns a list of all possible paths
+  /// Similar to [_getAllPossiblePaths] but exposed for public use.
+  /// This allows other components to use the same path resolution
+  /// strategy without code duplication.
   ///
-  /// [sourceLocation] is the location of the macro call
+  /// Parameters:
+  /// - [resourcePath]: The resource path to resolve
+  /// - [sourceLocation]: The source location for path resolution
+  ///
+  /// Returns:
+  /// A list of possible absolute file paths to try
   static List<String> getAllPossiblePaths(String resourcePath, Location sourceLocation) {
     final paths = <String>[];
 
-    // 1. If absolute path, only try that
+    /* 1. If absolute path, only try that */
     if (path.isAbsolute(resourcePath)) {
       paths.add(path.normalize(resourcePath));
       return paths;
     }
 
-    // 2. Relative to source file
+    /* 2. Relative to source file */
     final sourceDir = path.dirname(path.absolute(sourceLocation.file));
     paths.add(path.normalize(path.join(sourceDir, resourcePath)));
 
-    // 3. Relative to project root
+    /* 3. Relative to project root */
     final projectRoot = _findProjectRoot(sourceLocation.file);
     paths.add(path.normalize(path.join(projectRoot, resourcePath)));
 
-    // 4. Relative to current working directory
+    /* 4. Relative to current working directory */
     paths.add(path.normalize(path.join(Directory.current.path, resourcePath)));
 
     return paths.toSet().toList(); // Remove duplicates
   }
 
-  /// Find the project root directory by looking for pubspec.yaml
+  /// Finds the project root directory by looking for pubspec.yaml.
+  ///
+  /// This method walks up the directory tree from a starting path,
+  /// looking for a pubspec.yaml file which indicates the project root.
+  ///
+  /// Parameters:
+  /// - [startPath]: The path to start searching from
+  ///
+  /// Returns:
+  /// The project root directory path, or the original directory if not found
   static String _findProjectRoot(String startPath) {
     var dir = path.normalize(path.absolute(startPath));
     while (dir.length > path.rootPrefix(dir).length) {
@@ -192,13 +266,15 @@ class ResourceLoader {
     return path.dirname(startPath);
   }
 
-  /// Find the project root directory by looking for pubspec.yaml for a resource getter
-  /// findProjectRoot
+  /// Finds the project root directory (public version).
   ///
-  /// [startPath] is the path to start searching from
-  /// Returns the project root directory
+  /// Similar to [_findProjectRoot] but exposed for public use.
   ///
-
+  /// Parameters:
+  /// - [startPath]: The path to start searching from
+  ///
+  /// Returns:
+  /// The project root directory path, or the original directory if not found
   static String findProjectRoot(String startPath) {
     var dir = path.normalize(path.absolute(startPath));
     while (dir.length > path.rootPrefix(dir).length) {
@@ -213,42 +289,73 @@ class ResourceLoader {
     return path.dirname(startPath);
   }
 
-  /// Check if the file extension is allowed
+  /// Checks if the file extension is allowed.
+  ///
+  /// This method verifies that the file has an extension in the
+  /// whitelist of [_allowedExtensions].
+  ///
+  /// Parameters:
+  /// - [filePath]: The path to check
+  ///
+  /// Returns:
+  /// true if the extension is allowed, false otherwise
   static bool _isAllowedExtension(String filePath) {
     final ext = path.extension(filePath).toLowerCase();
     return _allowedExtensions.contains(ext);
   }
 
-  /// Check if the file extension is allowed for a resource getter
-  /// isAllowedExtension
+  /// Checks if the file extension is allowed (public version).
   ///
-  /// [filePath] is the path to the file
-  /// Returns true if the extension is allowed
+  /// Similar to [_isAllowedExtension] but exposed for public use.
   ///
+  /// Parameters:
+  /// - [filePath]: The path to check
+  ///
+  /// Returns:
+  /// true if the extension is allowed, false otherwise
   static bool isAllowedExtension(String filePath) {
     final ext = path.extension(filePath).toLowerCase();
     return _allowedExtensions.contains(ext);
   }
 
-  /// Clear the resource cache
+  /// Clears the resource cache.
+  ///
+  /// This method allows clearing the cache when needed, such as
+  /// when resources might have changed during development.
   static void clearCache() {
     _cache.clear();
   }
 
-  /// Add a file extension to allowed types
+  /// Adds a file extension to the allowed types.
+  ///
+  /// This method allows extending the whitelist of allowed file extensions.
+  ///
+  /// Parameters:
+  /// - [extension]: The extension to add (with or without leading dot)
   static void addAllowedExtension(String extension) {
     if (!extension.startsWith('.')) {
       extension = '.$extension';
     }
     _allowedExtensions.add(extension.toLowerCase());
   }
-
-  ///
 }
 
-/// Extension methods for MacroProcessor to support resource loading
+/// Extension methods for MacroProcessor to support resource loading.
+///
+/// This extension provides integration between the MacroProcessor and
+/// ResourceLoader, allowing macros to be defined from resource files.
 extension ResourceLoaderExtension on MacroProcessor {
-  /// Define a macro from a resource file
+  /// Defines a macro from a resource file.
+  ///
+  /// This method loads a resource file and defines its content as a macro.
+  ///
+  /// Parameters:
+  /// - [name]: The name of the macro to define
+  /// - [resourcePath]: The path to the resource file
+  /// - [location]: The source location for error reporting
+  ///
+  /// Returns:
+  /// A Future that completes when the macro has been defined
   Future<void> defineFromResource(
       String name,
       String resourcePath,

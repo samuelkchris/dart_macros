@@ -8,7 +8,7 @@ Add this to your package's pubspec.yaml file:
 
 ```yaml
 dependencies:
-  dart_macros: ^1.0.0
+  dart_macros: ^1.0.1
 ```
 
 Install it:
@@ -27,6 +27,7 @@ dart_macros provides a familiar C-like macro system for Dart developers, offerin
 - ✅ Conditional compilation directives
 - ✅ Macro expansion and evaluation
 - ✅ Built-in predefined macros
+- ✅ Cross-platform support (Flutter/iOS/Android)
 
 ## 📋 Use Cases
 
@@ -36,6 +37,7 @@ dart_macros provides a familiar C-like macro system for Dart developers, offerin
 - **Compile-time constants** and computations
 - **Code reusability** through macro templates
 - **Meta-programming** capabilities
+- **White-label applications** with client-specific configurations
 
 ## ✨ Features
 
@@ -45,6 +47,7 @@ dart_macros provides a familiar C-like macro system for Dart developers, offerin
 - 🔄 Integration with existing Dart tooling
 - ⚡ Performance optimization through compile-time evaluation
 - 🧩 Support for nested macro definitions
+- 📱 Full support for Flutter on all platforms
 
 ## 🚀 Usage
 
@@ -103,6 +106,55 @@ void main() async {
   var squared = MacroFunctions.SQUARE(5);  // Evaluates to 25
   var minimum = MacroFunctions.MIN(x, y);  // Returns the smaller of x and y
   var isValid = MacroFunctions.VALIDATE(value, 100);  // Checks if value is in range
+}
+```
+
+### Flutter Support
+
+Use dart_macros in Flutter applications on all platforms:
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:dart_macros/dart_macros.dart';
+
+void main() {
+  // Initialize Flutter macros
+  FlutterMacros.initialize();
+  
+  // Register macros for Flutter apps
+  FlutterMacros.registerFromAnnotations([
+    Define('APP_NAME', 'My Flutter App'),
+    Define('API_ENDPOINT', 'https://api.example.com'),
+    Define('DEBUG', true),
+    DefineMacro('FORMAT_CURRENCY', '"\$" + amount.toStringAsFixed(2)', parameters: ['amount']),
+  ]);
+  
+  // Configure platform-specific settings
+  FlutterMacros.configurePlatform(
+    platform: 'android',
+    debug: true,
+    additionalValues: {
+      'MIN_SDK_VERSION': 21,
+      'TARGET_SDK_VERSION': 33,
+    },
+  );
+  
+  runApp(MyApp());
+}
+
+// Use macros just like on other platforms
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: Macros.get<String>('APP_NAME'),
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        brightness: Macros.get<bool>('DEBUG') ? Brightness.light : Brightness.dark,
+      ),
+      home: HomeScreen(),
+    );
+  }
 }
 ```
 
@@ -212,6 +264,53 @@ class App {
 }
 ```
 
+## 📱 Mobile-Specific Features
+
+### Platform Detection
+
+dart_macros automatically selects the appropriate implementation based on platform capabilities:
+
+```dart
+// The same API works across all platforms
+// On Flutter mobile, a non-reflection based implementation is used
+// On Dart VM and web, a reflection-based implementation is used
+final appName = Macros.get<String>('APP_NAME');
+```
+
+### Flutter Configuration
+
+For Flutter applications, use the `FlutterMacros` class to set up platform-specific configurations:
+
+```dart
+// Initialize with base settings
+FlutterMacros.initialize();
+
+// Configure for a specific platform
+FlutterMacros.configurePlatform(
+  platform: defaultTargetPlatform.name.toLowerCase(),
+  debug: kDebugMode,
+  additionalValues: {
+    'DEVICE_TYPE': MediaQuery.of(context).size.width > 600 ? 'tablet' : 'phone',
+    'API_BASE_URL': _getApiUrl(),
+    'TIMEOUT_MS': 5000,
+  },
+);
+```
+
+### Registration Helpers
+
+Register macros from annotations for mobile platforms:
+
+```dart
+// Register multiple macros at once
+FlutterMacros.registerFromAnnotations([
+  Define('VERSION', '1.0.0'),
+  Define('MAX_ITEMS', 100),
+  Define('FEATURE_NEW_UI', false),
+  DefineMacro('SQUARE', 'x * x', parameters: ['x']),
+]);
+```
+
 ## 📝 Best Practices
 
 1. 📋 Document macro behavior and expansion
@@ -220,6 +319,7 @@ class App {
 4. 🧪 Test macro expansion in different contexts
 5. 🔍 Consider using `const` or `static final` instead of simple object-like macros
 6. ⚠️ Be careful with token concatenation and stringizing operators
+7. 📱 For mobile apps, centralize macro registration in a configuration class
 
 ## ❌ Common Pitfalls
 
@@ -289,6 +389,21 @@ var squared = MacroFunctions.SQUARE(5);
 
 // Using predefined function-like macros
 MacroFunctions.DEBUG_PRINT("Error occurred");
+```
+
+#### FlutterMacros
+
+For Flutter-specific macro operations:
+
+```dart
+// Initialize for Flutter
+FlutterMacros.initialize();
+
+// Register macros for Flutter
+FlutterMacros.registerFromAnnotations([...]);
+
+// Configure platform-specific settings
+FlutterMacros.configurePlatform(...);
 ```
 
 ### Annotations

@@ -11,7 +11,36 @@ import '../environments/environment_data.dart';
 /// Built-in macro functions extension
 extension MacroFunctions on Macros {
   // Math operations
-  static num SQUARE(dynamic x) => _evalMacro('SQUARE', [x]) as num;
+static num SQUARE(dynamic x) {
+  final result = _evalMacro('SQUARE', [x]);
+  if (result is num) {
+    return result;
+  }
+
+  // Try to parse if it's a string
+  if (result is String) {
+    // Try direct parsing first
+    final numValue = num.tryParse(result);
+    if (numValue != null) {
+      return numValue;
+    }
+
+    // Handle arithmetic expressions like "5 * 5"
+    if (result.contains('*')) {
+      try {
+        // For SQUARE specifically, we expect "x * x" format
+        final parts = result.split('*').map((p) => num.tryParse(p.trim()));
+        if (!parts.contains(null) && parts.length == 2) {
+          return parts.first! * parts.last!;
+        }
+      } catch (e) {
+        // Fall through to error
+      }
+    }
+  }
+
+  throw StateError('Invalid result for SQUARE: $result');
+}
 
   static num CUBE(dynamic x) => _evalMacro('CUBE', [x]) as num;
 
@@ -57,10 +86,32 @@ extension MacroFunctions on Macros {
   // Internal evaluator
   static dynamic _evalMacro(String name, List<dynamic> args) {
     try {
-      final result = ExpressionEvaluator.evaluate(name);
+      final result =
+          Macros.processMacro(name, args.map((e) => e.toString()).toList());
+
+      // Try to interpret the result based on its content
+      // For numeric values:
+      if (result.contains('.')) {
+        final doubleVal = double.tryParse(result);
+        if (doubleVal != null) return doubleVal;
+      }
+
+      final intVal = int.tryParse(result);
+      if (intVal != null) return intVal;
+
+      // For boolean values:
+      if (result.toLowerCase() == 'true') return true;
+      if (result.toLowerCase() == 'false') return false;
+
+      // For string values (with quotes):
+      if (result.startsWith('"') && result.endsWith('"')) {
+        return result.substring(1, result.length - 1);
+      }
+
+      // Default fallback:
       return result;
     } catch (e) {
-      throw MacroUsageException('Error evaluating macro $name: $e');
+      throw StateError('Error evaluating macro $name: $e');
     }
   }
 

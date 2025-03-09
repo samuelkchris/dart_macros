@@ -6,12 +6,12 @@ import 'package:dart_macros/dart_macros.dart';
 @Define('PI', 3.14159)
 @Define('DEBUG', true)
 void main() async {
-  await initializeDartMacros(); // This is now optional but won't hurt
+  await initializeDartMacros();
 
   print('App Version: ${Macros.get<String>("VERSION")}');
 
   final items = List.generate(Macros.get<int>('MAX_ITEMS'), (i) => i);
-  print('Generated ${Macros.get("MAX_ITEMS")} items');
+  print('Generated ${Macros.get("MAX_ITEMS")} $items');
 
   final area = Macros.get<double>('PI') * 5 * 5;
   print('Area of circle with radius 5: $area');
