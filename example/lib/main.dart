@@ -7,5 +7,5 @@ void main() {
 
   AppConfig.initialize();
   // Run the app
-  runApp(TaskTrackerApp());
+
 }
