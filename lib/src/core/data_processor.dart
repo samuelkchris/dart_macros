@@ -39,23 +39,18 @@ class DataProcessor {
   /// Throws [MacroDefinitionException] if any part of the processing fails.
   void processDataAnnotation(Data annotation, String className, Map<String, String> fields, Location location) {
     try {
-      // Generate toString method
       if (annotation.generateToString) {
         _defineToString(className, fields, location);
       }
 
-      // Generate equality methods
       _defineEquality(className, fields, location);
 
-      // Generate copyWith method
       _defineCopyWith(className, fields, location);
 
-      // Generate Map conversion methods
       if (annotation.generateToMap) {
         _defineMapMethods(className, fields, location);
       }
 
-      // Generate JSON methods
       if (annotation.generateJson) {
         _defineJsonMethods(className, location);
       }
@@ -124,6 +119,7 @@ class DataProcessor {
       location: location,
     );
   }
+
   /// Generates methods for converting between the class and Map<String, dynamic>.
   ///
   /// Creates two methods:
@@ -178,3 +174,4 @@ extension DataProcessorExtension on MacroProcessor {
     processor.processDataAnnotation(annotation, className, {}, location);
   }
 }
+

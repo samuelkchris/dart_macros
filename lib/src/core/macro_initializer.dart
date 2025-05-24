@@ -12,22 +12,18 @@ class MacroInitializer implements Builder {
 
   @override
   Future<void> build(BuildStep buildStep) async {
-    // Read the input file
     final inputId = buildStep.inputId;
     final resolver = buildStep.resolver;
     if (!await resolver.isLibrary(inputId)) return;
 
-    // Parse the library
     final library = await resolver.libraryFor(inputId);
     final reader = LibraryReader(library);
 
-    // Build the output
     final output = StringBuffer();
     output.writeln("// Generated code - do not modify");
     output.writeln("import 'package:dart_macros/dart_macros.dart';");
     output.writeln();
 
-    // Handle @Data annotations
     for (var annotated in reader.annotatedWith(TypeChecker.fromRuntime(Data))) {
       final annotation = annotated.annotation;
       final element = annotated.element;
@@ -38,7 +34,6 @@ class MacroInitializer implements Builder {
       );
 
       try {
-        // Handle Data annotation
         _handleDataAnnotation(
           annotation,
           element.displayName,
@@ -53,7 +48,6 @@ class MacroInitializer implements Builder {
       }
     }
 
-    // Write the output file if needed
     if (output.isNotEmpty) {
       final outputId = inputId.changeExtension('.macro.g.dart');
       await buildStep.writeAsString(outputId, output.toString());
@@ -70,7 +64,6 @@ class MacroInitializer implements Builder {
     final generateEquality = annotation.read('generateEquality').boolValue;
     final generateJson = annotation.read('generateJson').boolValue;
 
-    // Add the appropriate macro definitions based on annotation settings
     if (generateToString) {
       _addToStringMacro(className, output);
     }
@@ -84,14 +77,12 @@ class MacroInitializer implements Builder {
 
   void _addToStringMacro(String className, StringBuffer output) {
     output.writeln('''
-    // ToString macro for $className
     Macros._define('${className}_toString', 'toString() => "$className(\${_fields})"');
     ''');
   }
 
   void _addEqualityMacros(String className, StringBuffer output) {
     output.writeln('''
-    // Equality macros for $className
     Macros._define('${className}_equals', 
       'operator ==(Object other) => identical(this, other) || '
       'other is $className && _fieldsEqual(other)');
@@ -102,7 +93,6 @@ class MacroInitializer implements Builder {
 
   void _addJsonMacros(String className, StringBuffer output) {
     output.writeln('''
-    // JSON macros for $className
     Macros._define('${className}_toJson', 
       'Map<String, dynamic> toJson() => _toMap()');
     Macros._define('${className}_fromJson', 

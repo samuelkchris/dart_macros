@@ -33,10 +33,10 @@ class CustomMacros {
   /// Defines a new custom predefined macro.
   ///
   /// Creates a new macro with the specified name and value, validating
-  /// that the name follows the required convention (must start with underscore).
+  /// that the name follows standard identifier naming rules.
   ///
   /// Parameters:
-  /// - [name]: The name of the macro to define (must start with underscore)
+  /// - [name]: The name of the macro to define
   /// - [value]: The replacement text for the macro
   /// - [location]: The source location for error reporting
   ///
@@ -50,7 +50,7 @@ class CustomMacros {
     /* Validate macro name */
     if (!_isValidMacroName(name)) {
       throw MacroDefinitionException(
-        'Invalid custom macro name: $name. Must start with underscore.',
+        'Invalid custom macro name: $name. Must be a valid identifier starting with a letter or underscore.',
         location,
       );
     }
@@ -124,8 +124,9 @@ class CustomMacros {
 
   /// Validates a custom macro name.
   ///
-  /// Custom predefined macros must start with underscore and
-  /// follow standard identifier naming rules.
+  /// Custom predefined macros should follow standard identifier naming rules.
+  /// Previously required to start with underscore, but now supports standard
+  /// uppercase macro naming convention (like API_VERSION) as well.
   ///
   /// Parameters:
   /// - [name]: The macro name to validate
@@ -133,9 +134,8 @@ class CustomMacros {
   /// Returns:
   /// true if the name is valid, false otherwise
   bool _isValidMacroName(String name) {
-    // Custom predefined macros must start with underscore
-    return name.startsWith('_') &&
-        RegExp(r'^[a-zA-Z_][a-zA-Z0-9_]*$').hasMatch(name);
+    // Allow both underscore prefix and standard uppercase naming convention
+    return RegExp(r'^[a-zA-Z_][a-zA-Z0-9_]*$').hasMatch(name);
   }
 }
 

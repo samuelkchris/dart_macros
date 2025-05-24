@@ -85,7 +85,14 @@ class MacroBuilder implements Builder {
 
     /* Step 1: Process custom macro definitions */
     if (config.containsKey('defines')) {
-      final defines = config['defines'] as Map<String, dynamic>;
+      final yamlDefines = config['defines'];
+      final defines = <String, dynamic>{};
+      if (yamlDefines is Map) {
+        yamlDefines.forEach((key, value) {
+          defines[key.toString()] = value;
+        });
+      }
+
       defines.forEach((key, value) {
         _customMacros.define(
           name: key,
@@ -112,8 +119,16 @@ class MacroBuilder implements Builder {
 
     /* Step 3: Process build configuration */
     if (config.containsKey('buildConfig')) {
+      final yamlBuildConfig = config['buildConfig'];
+      final buildConfig = <String, dynamic>{};
+      if (yamlBuildConfig is Map) {
+        yamlBuildConfig.forEach((key, value) {
+          buildConfig[key.toString()] = value;
+        });
+      }
+
       _customMacros.loadBuildConfig(
-        config['buildConfig'] as Map<String, dynamic>,
+        buildConfig,
         Location(
           file: 'build.yaml',
           line: 1,
@@ -124,9 +139,20 @@ class MacroBuilder implements Builder {
 
     /* Step 4: Process feature flags */
     if (config.containsKey('featureFlags')) {
-      final flags = config['featureFlags'] as Map<String, dynamic>;
+      final yamlFlags = config['featureFlags'];
+      final flags = <String, bool>{};
+      if (yamlFlags is Map) {
+        yamlFlags.forEach((key, value) {
+          if (value is bool) {
+            flags[key.toString()] = value;
+          } else {
+            flags[key.toString()] = value.toString().toLowerCase() == 'true';
+          }
+        });
+      }
+
       _customMacros.loadFeatureFlags(
-        flags.map((key, value) => MapEntry(key, value as bool)),
+        flags,
         Location(
           file: 'build.yaml',
           line: 1,

@@ -53,7 +53,6 @@ class MacroProcessor {
     required String replacement,
     required Location location,
   }) {
-    // Validate macro name
     if (!_isValidMacroName(name)) {
       throw MacroDefinitionException(
         'Invalid macro name: $name',
@@ -61,7 +60,6 @@ class MacroProcessor {
       );
     }
 
-    // Create appropriate macro type
     final macro = parameters.isEmpty
         ? MacroDefinition.object(
             name: name,
@@ -114,10 +112,7 @@ class MacroProcessor {
     var result = source;
     var location = Location(file: filePath, line: 1, column: 1);
 
-    // First pass: Process macro definitions
     result = _processDefinitions(result, location);
-
-    // Second pass: Expand macros
     result = _expandMacros(result, location);
 
     return result;
@@ -142,13 +137,11 @@ class MacroProcessor {
       currentLine++;
       final trimmed = line.trim();
 
-      // Skip empty lines and comments
       if (trimmed.isEmpty || trimmed.startsWith('//')) {
         processedLines.add(line);
         continue;
       }
 
-      // Handle macro definitions
       if (trimmed.startsWith('#define')) {
         _handleDefine(
           line,
@@ -275,7 +268,6 @@ class MacroProcessor {
     var result = source;
     var changed = true;
 
-    // Continue expanding until no more changes are made
     while (changed) {
       changed = false;
       final expanded = _expandMacrosOnce(result, location);
@@ -301,7 +293,6 @@ class MacroProcessor {
   String _expandMacrosOnce(String source, Location location) {
     var result = source;
 
-    // Expand function-like macros
     for (final macro in _macros.values.where((m) => m.isFunction)) {
       final pattern = RegExp('${macro.name}\\((.*?)\\)');
       result = result.replaceAllMapped(pattern, (match) {
@@ -313,7 +304,6 @@ class MacroProcessor {
       });
     }
 
-    // Expand object-like macros
     for (final macro in _macros.values.where((m) => m.isObject)) {
       result = result.replaceAll(macro.name, macro.replacement);
     }
@@ -340,7 +330,6 @@ class MacroProcessor {
     String argsString,
     Location location,
   ) {
-    // Check recursion
     if (_expansionStack.length >= _maxRecursionDepth) {
       throw RecursiveMacroException(_expansionStack.toList(), location);
     }
@@ -448,7 +437,6 @@ extension DataAnnotationHandler on MacroProcessor {
   /// * [location] - Source location for error reporting
   void handleDataAnnotation(
       String source, String className, Location location) {
-    // Look for @Data annotation
     final dataMatch = RegExp(r'@Data\((.*?)\)').firstMatch(source);
     if (dataMatch != null) {
       final annotationArgs = dataMatch.group(1) ?? '';

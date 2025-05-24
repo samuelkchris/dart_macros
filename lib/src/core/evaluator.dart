@@ -23,32 +23,26 @@ class ExpressionEvaluator {
   ///
   /// Throws [FormatException] if the expression is invalid or cannot be evaluated.
   static dynamic evaluate(String expression) {
-    // Remove outer parentheses if they exist
     expression = expression.trim();
     while (expression.startsWith('(') && expression.endsWith(')')) {
       expression = expression.substring(1, expression.length - 1).trim();
     }
 
-    // Handle string concatenation
     if (expression.contains('+') && !_containsOnlyNumbers(expression)) {
       return _evaluateStringConcat(expression);
     }
 
-    // Handle arithmetic expressions
     if (_isArithmeticExpression(expression)) {
       return _evaluateArithmetic(expression);
     }
 
-    // Handle comparison expressions
     if (_isComparisonExpression(expression)) {
       return _evaluateComparison(expression);
     }
 
-    // Try parsing as number
     final number = num.tryParse(expression);
     if (number != null) return number;
 
-    // Return as is for strings and other values
     return _unquote(expression);
   }
 
@@ -124,7 +118,6 @@ class ExpressionEvaluator {
   ///
   /// Throws [FormatException] if the expression is invalid or operands are not numbers.
   static dynamic _evaluateArithmetic(String expr) {
-    // Handle multiplication
     if (expr.contains('*')) {
       final parts = expr.split('*').map((e) => evaluate(e.trim())).toList();
       if (parts.every((e) => e is num)) {
@@ -132,7 +125,6 @@ class ExpressionEvaluator {
       }
     }
 
-    // Handle division
     if (expr.contains('/')) {
       final parts = expr.split('/').map((e) => evaluate(e.trim())).toList();
       if (parts.every((e) => e is num)) {
@@ -140,7 +132,6 @@ class ExpressionEvaluator {
       }
     }
 
-    // Handle addition
     if (expr.contains('+')) {
       final parts = expr.split('+').map((e) => evaluate(e.trim())).toList();
       if (parts.every((e) => e is num)) {
@@ -148,7 +139,6 @@ class ExpressionEvaluator {
       }
     }
 
-    // Handle subtraction
     if (expr.contains('-')) {
       final parts = expr.split('-').map((e) => evaluate(e.trim())).toList();
       if (parts.every((e) => e is num)) {
@@ -166,7 +156,6 @@ class ExpressionEvaluator {
   ///
   /// Throws [FormatException] if the expression is invalid or operands are not comparable.
   static dynamic _evaluateComparison(String expr) {
-    // Handle greater than or equal
     if (expr.contains('>=')) {
       final parts = expr.split('>=').map((e) => evaluate(e.trim())).toList();
       if (parts.every((e) => e is num)) {
@@ -174,7 +163,6 @@ class ExpressionEvaluator {
       }
     }
 
-    // Handle less than or equal
     if (expr.contains('<=')) {
       final parts = expr.split('<=').map((e) => evaluate(e.trim())).toList();
       if (parts.every((e) => e is num)) {
@@ -182,7 +170,6 @@ class ExpressionEvaluator {
       }
     }
 
-    // Handle greater than
     if (expr.contains('>')) {
       final parts = expr.split('>').map((e) => evaluate(e.trim())).toList();
       if (parts.every((e) => e is num)) {
@@ -190,7 +177,6 @@ class ExpressionEvaluator {
       }
     }
 
-    // Handle less than
     if (expr.contains('<')) {
       final parts = expr.split('<').map((e) => evaluate(e.trim())).toList();
       if (parts.every((e) => e is num)) {
@@ -200,27 +186,4 @@ class ExpressionEvaluator {
 
     throw FormatException('Invalid comparison expression: $expr');
   }
-
-  /// Evaluates ternary expressions of the form: condition ? ifTrue : ifFalse
-  ///
-  /// Example:
-  /// ```dart
-  /// _evaluateTernary("1 > 0 ? 'yes' : 'no'") // Returns "yes"
-  /// ```
-  ///
-  /// Throws [FormatException] if the ternary expression is malformed.
-  // static dynamic _evaluateTernary(String expr) {
-  //   final qIndex = expr.indexOf('?');
-  //   final cIndex = expr.indexOf(':', qIndex);
-  //
-  //   if (qIndex == -1 || cIndex == -1) {
-  //     throw FormatException('Invalid ternary expression: $expr');
-  //   }
-  //
-  //   final condition = evaluate(expr.substring(0, qIndex).trim());
-  //   final ifTrue = expr.substring(qIndex + 1, cIndex).trim();
-  //   final ifFalse = expr.substring(cIndex + 1).trim();
-  //
-  //   return condition == true ? evaluate(ifTrue) : evaluate(ifFalse);
-  // }
 }
