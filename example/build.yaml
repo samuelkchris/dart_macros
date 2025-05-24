@@ -1,0 +1,15 @@
+targets:
+  $default:
+    builders:
+      dart_macros|macro_builder:
+        options:
+          defines:
+            API_VERSION: 2
+            MAX_RETRIES: 3
+            DEBUG_LOGGING: true
+          useEnvironmentVariables: true
+          featureFlags:
+            NEW_AUTH_SYSTEM: true
+            ANALYTICS_ENABLED: false
+            EXPERIMENTAL_UI: true
+          version: "2.1.0"

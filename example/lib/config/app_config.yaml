@@ -1,0 +1,17 @@
+api:
+  base_url: "https://api.example.com"
+  timeout: 30000
+  endpoints:
+    users: "/v2/users"
+    posts: "/v2/posts"
+    auth: "/v2/auth"
+
+features:
+  caching_enabled: true
+  offline_mode: false
+  push_notifications: true
+
+ui:
+  theme: "dark"
+  animations: true
+  max_items_per_page: 20
