@@ -1,6 +1,6 @@
 name: dart_macros
 description: A powerful Dart package that brings C-style macro preprocessing capabilities to Dart.
-version: 1.0.1
+version: 1.0.2
 homepage: https://github.com/samuelkchris/dart_macros
 
 environment:

@@ -8,7 +8,7 @@ Add this to your package's pubspec.yaml file:
 
 ```yaml
 dependencies:
-  dart_macros: ^1.0.1
+  dart_macros: ^1.0.2
 ```
 
 Install it:
